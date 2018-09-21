@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"fmt"
 
 	"github.com/gorilla/mux"
 )
@@ -52,5 +51,5 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 	// peopleをjsonにエンコードしてwに書き込む？
-	json.NewEncoder(w).Encode(bid)
+	json.NewEncoder(w).Encode(params)
 }
