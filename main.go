@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -57,16 +56,15 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 	// peopleをjsonにエンコードしてwに書き込む？
-	json.NewEncoder(w).Encode(params)
+	json.NewEncoder(w).Encode(bid)
 }
 
 func WinHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var params WIN_NOTICE
 	err := decoder.Decode(&params)
-	fmt.Println(params)
 	if err != nil {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
-	json.NewEncoder(w).Encode(params)
+	w.WriteHeader(204)
 }
