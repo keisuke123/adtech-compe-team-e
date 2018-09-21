@@ -51,7 +51,6 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
-	fmt.Println(params.MediaId);
 	// peopleをjsonにエンコードしてwに書き込む？
 	json.NewEncoder(w).Encode(bid)
 }
