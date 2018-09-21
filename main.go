@@ -56,7 +56,8 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
-	json.NewEncoder(w).Encode(bid)
+	// peopleをjsonにエンコードしてwに書き込む？
+	json.NewEncoder(w).Encode(params)
 }
 
 func WinHandler(w http.ResponseWriter, r *http.Request) {
