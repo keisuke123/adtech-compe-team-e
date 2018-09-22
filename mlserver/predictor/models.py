@@ -6,5 +6,6 @@ from solo.models import SingletonModel
 import pickle
 
 class CTRPredictor(SingletonModel):
-    with open("predictor/models/test_model.pickle", "rb") as f:
-        model = pickle.load(f)
+	model = 'a'
+    #with open("predictor/models/test_model.pickle", "rb") as f:
+     #   model = pickle.load(f)
