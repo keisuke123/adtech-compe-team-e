@@ -94,13 +94,26 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(bid)
 }
 
+/**
+  *  GET    /win_notice?advId=xxxx
+  *	 params advId
+  */
 func WinHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var params WIN_NOTICE
-	err := decoder.Decode(&params)
+	var winNoticeParams WIN_NOTICE
+	err := decoder.Decode(&winNoticeParams)
 	if err != nil {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
+
+	// get a advId from GET parameter
+	params := mux.Vars(r)
+	advId, err := strconv.Atoi(params["advId"])
+	panicOnError(err)
+
+	// decrease a budget
+	decreaseBudget(advId, winNoticeParams.Price)
+
 	w.WriteHeader(204)
 }
 
