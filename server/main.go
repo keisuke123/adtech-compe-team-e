@@ -3,19 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-
-	. "github.com/aerospike/aerospike-client-go"
-	"github.com/gorilla/mux"
-)
-
-import (
 	as "github.com/aerospike/aerospike-client-go"
-	"io/ioutil"
+	"github.com/buaazp/fasthttprouter"
+	"github.com/valyala/fasthttp"
+	"log"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type BID struct {
@@ -123,107 +116,128 @@ func main() {
 	advIds[18] = "adv19"
 	advIds[19] = "adv20"
 
-	bid = BID{
-		Id:           "asdf",
-		BidPrice:     3.14,
-		AdvertiserId: "zxcv",
-		Nurl:         "aiueo",
-	}
-
 	loadGob(&userDemographics)
 
-	router := mux.NewRouter()
-	router.HandleFunc("/bid_req", BidHandler).Methods("POST")
-	router.HandleFunc("/win_notice", WinHandler).Methods("POST")
-	router.HandleFunc("/hoge", HogeHandler).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	router := fasthttprouter.New()
+	router.POST("/bid_req", bidRequestHandler)
+	router.POST("/win_notice", winNoticeHandler)
+	log.Fatal(fasthttp.ListenAndServe(":8080", router.Handler))
 
 	fmt.Println("==== Listen ====")
 }
 
-func HogeHandler(writer http.ResponseWriter, request *http.Request) {
-	decoder := json.NewDecoder(request.Body)
-	var bidParams MlParams
-	err := decoder.Decode(&bidParams)
+/**
+ *    POST /win_notice
+ */
+func winNoticeHandler(ctx *fasthttp.RequestCtx) {
+	var winNoticeParams WinNotice
+	fmt.Println(string(ctx.PostBody()))
+	err := json.Unmarshal(ctx.PostBody(), &winNoticeParams)
 	if err != nil {
-		writer.Write([]byte("json decode error" + err.Error() + "\n"))
+		ctx.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 
-	fmt.Printf("%+v\n", bidParams)
+	// get a advId from GET parameter
+	params := ctx.QueryArgs()
+	advId, err := params.GetUint("advId")
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+	panicOnError(err)
 
-	json.NewEncoder(writer).Encode(bid)
+	fmt.Printf("%+v\n", winNoticeParams)
+	fmt.Printf("advId : %d\n", advId)
+
+	// decrease a budget if an Ad was clicked
+	if winNoticeParams.IsClick == "1" { // click
+		fmt.Println("reduce")
+		price, err := strconv.ParseFloat(winNoticeParams.Price, 64)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+		decreaseBudget(advId, price)
+	} else { // not click
+		fmt.Println("not reduce")
+	}
+
+	ctx.SetStatusCode(204)
 }
 
-func BidHandler(w http.ResponseWriter, r *http.Request) {
+/**
+ *   POST /bid_req
+ */
+func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	// get POST parameters
-	decoder := json.NewDecoder(r.Body)
 	var bidParams BidParam
-	err := decoder.Decode(&bidParams)
-	if err != nil {
-		w.Write([]byte("json decode error" + err.Error() + "\n"))
+	if err := json.Unmarshal(ctx.PostBody(), &bidParams); err != nil {
+		ctx.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 
 	targetUserDemographics := userDemographics[bidParams.DeviceId]
 
 	fmt.Printf("%+v\n", targetUserDemographics)
 
-	var mlParams MlParams
-	mlParams = MlParams{
-		FloorPrice:     bidParams.FloorPrice,
-		MediaId:        bidParams.MediaId,
-		Timestamp:      bidParams.Timestamp,
-		OsType:         bidParams.OsType,
-		BannerSize:     bidParams.BannerSize,
-		BannerPosition: bidParams.BannerPosition,
-		DeviceType:     bidParams.DeviceType,
-		Gender:         targetUserDemographics.Gender,
-		Age:            targetUserDemographics.Age,
-		Income:         targetUserDemographics.Income,
-		HasChild:       targetUserDemographics.HasChild,
-		IsMarried:      targetUserDemographics.IsMarried,
-		DeviceId:       bidParams.DeviceId,
-		Id:             bidParams.Id,
-		AdvId:          11,
-	}
+		var mlParams MlParams
+		mlParams = MlParams{
+			FloorPrice:     bidParams.FloorPrice,
+			MediaId:        bidParams.MediaId,
+			Timestamp:      bidParams.Timestamp,
+			OsType:         bidParams.OsType,
+			BannerSize:     bidParams.BannerSize,
+			BannerPosition: bidParams.BannerPosition,
+			DeviceType:     bidParams.DeviceType,
+			Gender:         targetUserDemographics.Gender,
+			Age:            targetUserDemographics.Age,
+			Income:         targetUserDemographics.Income,
+			HasChild:       targetUserDemographics.HasChild,
+			IsMarried:      targetUserDemographics.IsMarried,
+			DeviceId:       bidParams.DeviceId,
+			Id:             bidParams.Id,
+			AdvId:          11,
+		}
 
-	jsonBytes, err := json.Marshal(mlParams)
-	panicOnError(err)
+		jsonBytes, err := json.Marshal(mlParams)
+		panicOnError(err)
+		fmt.Println(mlParams)
+		fmt.Println(jsonBytes)
+		/*
+		httpClient := &http.Client{}
+		// TODO: URL変える
+		req, err := http.NewRequest("POST", "http://35.231.37.137:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
 
-	httpClient := &http.Client{}
-	// TODO: URL変える
-	req, err := http.NewRequest("POST", "http://35.231.37.137:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
+		req.Header.Set("Content-Type", "application/json")
 
-	req.Header.Set("Content-Type", "application/json")
+		response, err := httpClient.Do(req)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+		defer response.Body.Close()
 
-	response, err := httpClient.Do(req)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-	defer response.Body.Close()
-
-	// convert to Integer for CTR
-	byteArray, _ := ioutil.ReadAll(response.Body)
-	fmt.Println("CTR")
-	fmt.Println(string(byteArray))
-	// TODO: ここでbodyを読んで"CTR"を取り出す
-
+		// convert to Integer for CTR
+		byteArray, _ := ioutil.ReadAll(response.Body)
+		fmt.Println("CTR")
+		fmt.Println(string(byteArray))
+		// TODO: ここでbodyを読んで"CTR"を取り出す
+	*/
 	// scoring(ctr, current balance)
 	advCompanyId := 0
 
 	// 会社のCPCとりだし
-	adv_info, err := aerospikeClient.Get(nil, keys[advCompanyId])
+	advInfo, err := aerospikeClient.Get(nil, keys[advCompanyId])
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
 	}
 
 	ctr := 0.05
-	cpc := adv_info.Bins["cpc"].(float64)
+	cpc := advInfo.Bins["cpc"].(float64)
 	nurl := "http://localhost:8080/win_notice?advId=" + strconv.Itoa(advCompanyId)
 
 	bidResponse := BidResponse{
@@ -238,35 +252,13 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%+v\n\n", bidResponse)
 
 	// HTTP response
-	json.NewEncoder(w).Encode(bidResponse)
-}
-
-/**
- *  GET    /win_notice?advId=xxxx
- *	 params advId
- */
-func WinHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var winNoticeParams WinNotice
-	err := decoder.Decode(&winNoticeParams)
+	encode, err := json.Marshal(bidResponse)
 	if err != nil {
-		w.Write([]byte("json decode error" + err.Error() + "\n"))
+		log.Print(err)
+		os.Exit(1)
 	}
 
-	// get a advId from GET parameter
-	params := mux.Vars(r)
-	advId, err := strconv.Atoi(params["advId"])
-	panicOnError(err)
-
-	// decrease a budget
-	decreaseBudget(advId, winNoticeParams.Price)
-
-	w.WriteHeader(204)
-}
-
-func printError(format string, a ...interface{}) {
-	fmt.Printf("error: "+format+"\n", a...)
-	os.Exit(1)
+	ctx.SetBody(encode)
 }
 
 func panicOnError(err error) {
