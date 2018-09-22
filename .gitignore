@@ -2,3 +2,5 @@
 *.json
 *.pickle
 .idea/*
+ml/.idea/*
+mlserver/.idea/*
