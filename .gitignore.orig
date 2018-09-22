@@ -2,8 +2,11 @@
 *.json
 *.pickle
 .idea/*
+<<<<<<< HEAD
 .pyc
 *.log
 *.logs
+=======
 ml/.idea/*
 mlserver/.idea/*
+>>>>>>> feature/ml
