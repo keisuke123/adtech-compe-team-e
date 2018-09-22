@@ -3,3 +3,5 @@
 *.pickle
 .idea/*
 .pyc
+*.log
+*.logs
