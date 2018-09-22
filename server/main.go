@@ -4,8 +4,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"fmt"
 
 	"github.com/gorilla/mux"
+	. "github.com/aerospike/aerospike-client-go"
+)
+
+import (
+	as "github.com/aerospike/aerospike-client-go"
+	"strconv"
+	"os"
 )
 
 type BID struct {
@@ -35,8 +43,35 @@ type WIN_NOTICE struct {
 
 var bid BID
 
+var (
+	host      string = "35.221.183.111"
+	port      int    = 8081
+	namespace string = "hoge"
+	set       string = "users"
+)
+
+var keys []*Key
+var aerospikeClient *Client
+var err error
+
 func main() {
-	bid = BID{
+	// Aerospike config
+	aerospikeClient, err = as.NewClient("35.221.100.18", 3000)
+	panicOnError(err)
+
+	// generate keys
+	for i := 0 ; i < 20 ; i++ {
+		tmpKey, tmpErr := NewKey("test", "aerospike", i)
+		panicOnError(tmpErr)
+		keys = append(keys, tmpKey)
+	}
+
+	for i:=0; i < 20 ; i++ {
+		rec, _ := aerospikeClient.Get(nil, keys[i])
+		fmt.Printf("%#v\n", *rec)
+	}
+
+	bid = BID {
 		Id:           "asdf",
 		BidPrice:     3.14,
 		AdvertiserId: "zxcv",
@@ -67,4 +102,19 @@ func WinHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 	w.WriteHeader(204)
+}
+
+func printError(format string, a ...interface{}) {
+	fmt.Printf("error: "+format+"\n", a...)
+	os.Exit(1)
+}
+
+func panicOnError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func decreaseBudget(advId int, price float64) {
+	aerospikeClient.Operate(NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", price)), as.GetOp())
 }
