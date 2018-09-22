@@ -2,3 +2,4 @@
 *.json
 *.pickle
 .idea/*
+.pyc
