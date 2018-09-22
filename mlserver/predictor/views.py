@@ -7,6 +7,8 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 
 from predictor.models import CTRPredictor
+
+
 # Create your views here.
 @api_view(['POST'])
 def ctr(request):
@@ -17,15 +19,12 @@ def ctr(request):
         os_type = str(),
         banner_size = int(),
         banner_position = int(),
-        device_type = int(),
         gender = str(),
-        age = int(),
-        income = int(),
+        age = float(),
+        income = float(),
         has_child = str()
         is_married = str()
-        id = str()
         adv_id = int()
-        device_id = str()
 
         if 'floorPrice' in request.data:
             floor_price = request.data['floorPrice']
@@ -75,31 +74,40 @@ def ctr(request):
             is_married = request.data['isMarried']
         else:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
-        if 'id' in request.data:
-            id = request.data['id']
-        else:
-            return Response({}, status=status.HTTP_400_BAD_REQUEST)
-        if 'advId' in request.data:
-            id = request.data['id']
-        else:
-            return Response({}, status=status.HTTP_400_BAD_REQUEST)
-        if 'deviceId' in request.data:
-            device_id = request.data['deviceId']
-        else:
-            return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
         train_dict = {
-                'deviceId': device_id,
-                 'bannerPosition': banner_position,
-                 'bannerSize': banner_size,
-                 'deviceType': device_type,
-                 'floorPrice': floor_price,
-                 'id': id,
-                 'mediaId': media_id,
-                 'osType': os_type,
-                 'timestamp': timestamp,
-                 'advId': adv_id
-            }
+            'floorPrice': floor_price, #done
+            'mediaId': media_id,
+            'timeStamp': timestamp,
+            'osType': os_type, #done
+            'bannerSize': banner_size, #done
+            'bannerPosition': banner_position, #done
+            'gender': gender, #done
+            'age': age, #done
+            'income': income, #done
+            'hasChild': has_child, #done
+            'isMarried': is_married, #done
+            'advId': adv_id
+        }
+
+        df = pd.DataFrame(columns=['floorPrice', 'isClick', 'isHoliday',
+                                   'bannerPosition_below', 'bannerPosition_header',
+                                   'bannerPosition_footer', 'bannerPosition_Sidebar',
+                                   'bannerPosition_Full', 'os_type_iOS', 'h_1', 'h_10', 'h_11', 'h_12',
+                                   'h_13', 'h_14', 'h_15', 'h_16', 'h_17', 'h_18', 'h_19', 'h_2', 'h_20',
+                                   'h_21', 'h_22', 'h_23', 'h_3', 'h_4', 'h_5', 'h_6', 'h_7', 'h_8', 'h_9',
+                                   'advId_10', 'advId_11', 'advId_12', 'advId_13', 'advId_14', 'advId_15',
+                                   'advId_16', 'advId_17', 'advId_18', 'advId_19', 'advId_2', 'advId_20',
+                                   'advId_3', 'advId_4', 'advId_5', 'advId_6', 'advId_7', 'advId_8',
+                                   'advId_9', 'mediaId_counts', 'Click_counts_mediaId', 'bannerSize_2',
+                                   'bannerSize_3', 'bannerSize_4', 'age', 'income', 'female', 'male',
+                                   'not_married', 'married', 'no', 'yes'])
+
+        #fit new data into the dataframe
+
+
+
+        #crea
 
         df_train = pd.DataFrame(train_dict, index=[0])
 
@@ -109,9 +117,9 @@ def ctr(request):
             le = LabelEncoder()
             le.fit(df_train[target])
             df_train[target] = le.transform(df_train[target])
-        X_train = df_train.drop(["id"],axis=1).values
+        X_train = df_train.drop(["id"], axis=1).values
         ctr_predictor = CTRPredictor.get_solo()
-        #ctr = CTRPredictor.model.predict_proba(X_train[0].reshape(1,-1))
+        # ctr = CTRPredictor.model.predict_proba(X_train[0].reshape(1,-1))
 
         response_body = [
             {
