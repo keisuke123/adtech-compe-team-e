@@ -169,30 +169,30 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	fmt.Printf("%+v\n", targetUserDemographics)
 
-		var mlParams MlParams
-		mlParams = MlParams{
-			FloorPrice:     bidParams.FloorPrice,
-			MediaId:        bidParams.MediaId,
-			Timestamp:      bidParams.Timestamp,
-			OsType:         bidParams.OsType,
-			BannerSize:     bidParams.BannerSize,
-			BannerPosition: bidParams.BannerPosition,
-			DeviceType:     bidParams.DeviceType,
-			Gender:         targetUserDemographics.Gender,
-			Age:            targetUserDemographics.Age,
-			Income:         targetUserDemographics.Income,
-			HasChild:       targetUserDemographics.HasChild,
-			IsMarried:      targetUserDemographics.IsMarried,
-			DeviceId:       bidParams.DeviceId,
-			Id:             bidParams.Id,
-			AdvId:          11,
-		}
+	var mlParams MlParams
+	mlParams = MlParams{
+		FloorPrice:     bidParams.FloorPrice,
+		MediaId:        bidParams.MediaId,
+		Timestamp:      bidParams.Timestamp,
+		OsType:         bidParams.OsType,
+		BannerSize:     bidParams.BannerSize,
+		BannerPosition: bidParams.BannerPosition,
+		DeviceType:     bidParams.DeviceType,
+		Gender:         targetUserDemographics.Gender,
+		Age:            targetUserDemographics.Age,
+		Income:         targetUserDemographics.Income,
+		HasChild:       targetUserDemographics.HasChild,
+		IsMarried:      targetUserDemographics.IsMarried,
+		DeviceId:       bidParams.DeviceId,
+		Id:             bidParams.Id,
+		AdvId:          11,
+	}
 
-		jsonBytes, err := json.Marshal(mlParams)
-		panicOnError(err)
-		fmt.Println(mlParams)
-		fmt.Println(jsonBytes)
-		/*
+	jsonBytes, err := json.Marshal(mlParams)
+	panicOnError(err)
+	fmt.Println(mlParams)
+	fmt.Println(jsonBytes)
+	/*
 		httpClient := &http.Client{}
 		// TODO: URL変える
 		req, err := http.NewRequest("POST", "http://35.231.37.137:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
@@ -257,6 +257,7 @@ func panicOnError(err error) {
 	}
 }
 
+// decrease company's budget
 func decreaseBudget(advId int, price float64) {
 	aerospikeClient.Operate(as.NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", -price)), as.GetOp())
 }
