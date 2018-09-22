@@ -11,59 +11,51 @@ import (
 	"strconv"
 )
 
-type BID struct {
-	Id           string  `json:"Id,omitempty"`
-	BidPrice     float64 `json:"BidPrice,omitempty"`
-	AdvertiserId string  `json:"AdvertiserId,omitempty"`
-	Nurl         string  `json:"Nurl,omitempty"`
-}
-
 type BidParam struct {
-	Id             string
-	FloorPrice     int
-	DeviceId       string
-	MediaId        string
-	Timestamp      int64
-	OsType         string
-	BannerSize     int
-	BannerPosition int
-	DeviceType     int
+	Id             string `json:"id"`
+	FloorPrice     int    `json:"floorPrice"`
+	DeviceId       string `json:"deviceId"`
+	MediaId        string `json:"mediaId"`
+	Timestamp      int64  `json:"timeStamp"`
+	OsType         string `json:"osType"`
+	BannerSize     int    `json:"bannerSize"`
+	BannerPosition int    `json:"bannerPosition"`
+	DeviceType     int    `json:"deviceType"`
 }
 
 type MlParams struct {
-	FloorPrice     int
-	MediaId        string
-	Timestamp      int64
-	OsType         string
-	BannerSize     int
-	BannerPosition int
-	DeviceType     int
-	Gender         string
-	Age            float64
-	Income         float64
-	HasChild       string
-	IsMarried      string
-	DeviceId       string
-	Id             string
-	AdvId          int
+	FloorPrice     int     `json:"floorPrice"`
+	MediaId        string  `json:"mediaId"`
+	Timestamp      int64   `json:"timestamp"`
+	OsType         string  `json:"osType"`
+	BannerSize     int     `json:"bannerSize"`
+	BannerPosition int     `json:"bannerPosition"`
+	DeviceType     int     `json:"deviceType"`
+	Gender         string  `json:"gender"`
+	Age            float64 `json:"age"`
+	Income         float64 `json:"income"`
+	HasChild       string  `json:"hasChild"`
+	IsMarried      string  `json:"isMarried"`
+	DeviceId       string  `json:"deviceId"`
+	Id             string  `json:"id"`
+	AdvId          int     `json:"advId"`
 }
 
 type BidResponse struct {
-	Id           string
-	BidPrice     float64
-	AdvertisedId string
-	Nurl         string
+	Id           string  `json:"id"`
+	BidPrice     float64 `json:"bidPrice"`
+	AdvertisedId string  `json:"advertisedId"`
+	Nurl         string  `json:"nurl"`
 }
 
 type WinNotice struct {
-	Id      string
-	Price   float64
-	IsClick int
+	Id      string `json:"id"`
+	Price   string `json:"price"`
+	IsClick string `json:"isClick"`
 }
 
-var bid BID
-var keys []*Key
-var aerospikeClient *Client
+var keys []*as.Key
+var aerospikeClient *as.Client
 var err error
 var userDemographics map[string]UserDemographics
 var advIds [20]string
@@ -75,13 +67,11 @@ func main() {
 
 	defer aerospikeClient.Close()
 
-	//defer closeAerospile()
-
 	fmt.Println("==== Aerospike connected ====")
 
 	// generate keys
 	for i := 0; i < 20; i++ {
-		tmpKey, tmpErr := NewKey("test", "aerospike", i)
+		tmpKey, tmpErr := as.NewKey("test", "aerospike", i)
 		panicOnError(tmpErr)
 		keys = append(keys, tmpKey)
 	}
@@ -268,15 +258,5 @@ func panicOnError(err error) {
 }
 
 func decreaseBudget(advId int, price float64) {
-	aerospikeClient.Operate(NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", -price)), as.GetOp())
-}
-
-func closeAerospile() {
-	for i := 0; i < len(keys); i++ {
-		_, err := aerospikeClient.Delete(nil, keys[i])
-		if err != nil {
-			log.Print(err)
-			os.Exit(1)
-		}
-	}
+	aerospikeClient.Operate(as.NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", -price)), as.GetOp())
 }
