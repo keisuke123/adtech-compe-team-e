@@ -5,3 +5,5 @@
 .pyc
 *.log
 *.logs
+ml/.idea/*
+mlserver/.idea/
