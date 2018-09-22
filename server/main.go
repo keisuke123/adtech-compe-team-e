@@ -50,6 +50,16 @@ type MlParams struct {
 	Income         float64
 	HasChild       string
 	IsMarried      string
+	DeviceId       string
+	Id             string
+	AdvId          int
+}
+
+type BidResponse struct {
+	Id           string
+	BidPrice     float64
+	AdvertisedId string
+	Nurl         string
 }
 
 type WinNotice struct {
@@ -63,11 +73,14 @@ var keys []*Key
 var aerospikeClient *Client
 var err error
 var userDemographics map[string]UserDemographics
+var advIds [20]string
 
 func main() {
 	// Aerospike config
 	aerospikeClient, err = as.NewClient("35.221.100.18", 3000)
 	panicOnError(err)
+
+	defer aerospikeClient.Close()
 
 	//defer closeAerospile()
 
@@ -89,6 +102,27 @@ func main() {
 		fmt.Printf("%#v\n", *rec)
 	}
 
+	advIds[0] = "adv01"
+	advIds[1] = "adv02"
+	advIds[2] = "adv03"
+	advIds[3] = "adv04"
+	advIds[4] = "adv05"
+	advIds[5] = "adv06"
+	advIds[6] = "adv07"
+	advIds[7] = "adv08"
+	advIds[8] = "adv09"
+	advIds[9] = "adv10"
+	advIds[10] = "adv11"
+	advIds[11] = "adv12"
+	advIds[12] = "adv13"
+	advIds[13] = "adv14"
+	advIds[14] = "adv15"
+	advIds[15] = "adv16"
+	advIds[16] = "adv17"
+	advIds[17] = "adv18"
+	advIds[18] = "adv19"
+	advIds[19] = "adv20"
+
 	bid = BID{
 		Id:           "asdf",
 		BidPrice:     3.14,
@@ -109,13 +143,13 @@ func main() {
 
 func HogeHandler(writer http.ResponseWriter, request *http.Request) {
 	decoder := json.NewDecoder(request.Body)
-	var bidParams BidParam
+	var bidParams MlParams
 	err := decoder.Decode(&bidParams)
 	if err != nil {
 		writer.Write([]byte("json decode error" + err.Error() + "\n"))
 	}
 
-	fmt.Println(bidParams)
+	fmt.Printf("%+v\n", bidParams)
 
 	json.NewEncoder(writer).Encode(bid)
 }
@@ -131,7 +165,10 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 
 	targetUserDemographics := userDemographics[bidParams.DeviceId]
 
-	mlParams := MlParams{
+	fmt.Printf("%+v\n", targetUserDemographics)
+
+	var mlParams MlParams
+	mlParams = MlParams{
 		FloorPrice:     bidParams.FloorPrice,
 		MediaId:        bidParams.MediaId,
 		Timestamp:      bidParams.Timestamp,
@@ -144,13 +181,17 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 		Income:         targetUserDemographics.Income,
 		HasChild:       targetUserDemographics.HasChild,
 		IsMarried:      targetUserDemographics.IsMarried,
+		DeviceId:       bidParams.DeviceId,
+		Id:             bidParams.Id,
+		AdvId:          11,
 	}
 
 	jsonBytes, err := json.Marshal(mlParams)
 	panicOnError(err)
 
 	httpClient := &http.Client{}
-	req, err := http.NewRequest("POST", "http://localhost:8080/hoge", strings.NewReader(string(jsonBytes)))
+	// TODO: URL変える
+	req, err := http.NewRequest("POST", "http://35.231.37.137:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
@@ -167,10 +208,37 @@ func BidHandler(w http.ResponseWriter, r *http.Request) {
 
 	// convert to Integer for CTR
 	byteArray, _ := ioutil.ReadAll(response.Body)
+	fmt.Println("CTR")
 	fmt.Println(string(byteArray))
+	// TODO: ここでbodyを読んで"CTR"を取り出す
+
+	// scoring(ctr, current balance)
+	advCompanyId := 0
+
+	// 会社のCPCとりだし
+	adv_info, err := aerospikeClient.Get(nil, keys[advCompanyId])
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+
+	ctr := 0.05
+	cpc := adv_info.Bins["cpc"].(float64)
+	nurl := "http://localhost:8080/win_notice?advId=" + strconv.Itoa(advCompanyId)
+
+	bidResponse := BidResponse{
+		Id:           bidParams.Id,
+		BidPrice:     cpc * ctr * 1000.0,
+		AdvertisedId: advIds[advCompanyId],
+		Nurl:         nurl,
+	}
+
+	fmt.Println("bitResponse")
+
+	fmt.Printf("%+v\n\n", bidResponse)
 
 	// HTTP response
-	json.NewEncoder(w).Encode(bid)
+	json.NewEncoder(w).Encode(bidResponse)
 }
 
 /**
@@ -208,7 +276,7 @@ func panicOnError(err error) {
 }
 
 func decreaseBudget(advId int, price float64) {
-	aerospikeClient.Operate(NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", price)), as.GetOp())
+	aerospikeClient.Operate(NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", -price)), as.GetOp())
 }
 
 func closeAerospile() {
