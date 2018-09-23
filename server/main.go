@@ -175,15 +175,12 @@ func winNoticeHandler(ctx *fasthttp.RequestCtx) {
 
 	// decrease a budget if an Ad was clicked
 	if winNoticeParams.IsClick == "1" { // click
-		fmt.Println("reduce")
 		price, err := strconv.ParseFloat(winNoticeParams.Price, 64)
 		if err != nil {
 			log.Print(err)
 			os.Exit(1)
 		}
 		decreaseBudget(advId, price)
-	} else { // not click
-		fmt.Println("not reduce")
 	}
 
 	ctx.SetStatusCode(204)
@@ -239,11 +236,8 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	// convert to Integer for CTR
 	byteArray, _ := ioutil.ReadAll(response.Body)
-	fmt.Println("CTR")
-	fmt.Println(string(byteArray))
 	var tmpCtrs CTRs
 	json.Unmarshal(byteArray, &tmpCtrs)
-	fmt.Printf("%+v\n", tmpCtrs)
 
 	// TODO: ここでbodyを読んで"CTR"を取り出す
 	var ctrs [20]float64
@@ -300,10 +294,6 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 		AdvertisedId: advIds[advCompanyId],
 		Nurl:         nurl,
 	}
-
-	fmt.Println("bitResponse")
-
-	fmt.Printf("%+v\n\n", bidResponse)
 
 	// HTTP response
 	encode, err := json.Marshal(bidResponse)
