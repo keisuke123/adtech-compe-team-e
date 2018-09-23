@@ -251,7 +251,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	ctr := bestScoreInfo.Ctr
 	cpc := advInfo.Bins["cpc"].(float64)
-	nurl := "http://35.186.252.136:8080/win_notice?advId=" + strconv.Itoa(advCompanyId)
+	nurl := "http://35.186.252.136/win_notice?advId=" + strconv.Itoa(advCompanyId)
 
 	bidResponse := BidResponse{
 		Id:           bidParams.Id,
