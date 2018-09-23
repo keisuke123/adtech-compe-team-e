@@ -7,9 +7,11 @@ import (
 	"github.com/buaazp/fasthttprouter"
 	"github.com/valyala/fasthttp"
 	"log"
+	"math/rand"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type BidParam struct {
@@ -228,8 +230,9 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	// get the best advId
 	var ctrs [20]float64
 	var budgetsPercentage [20]float64
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 20; i++ {
-		ctrs[i] = 0.05
+		ctrs[i] = rand.Float64()
 		budgetsPercentage[i] = 100000.0 / originalBudgets[i]
 	}
 
