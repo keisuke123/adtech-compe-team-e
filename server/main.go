@@ -6,13 +6,16 @@ import (
 	as "github.com/aerospike/aerospike-client-go"
 	"github.com/buaazp/fasthttprouter"
 	"github.com/valyala/fasthttp"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
+	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
-	"runtime"
 )
 
 type BidParam struct {
@@ -40,9 +43,6 @@ type MlParams struct {
 	Income         float64 `json:"income"`
 	HasChild       string  `json:"hasChild"`
 	IsMarried      string  `json:"isMarried"`
-	DeviceId       string  `json:"deviceId"`
-	Id             string  `json:"id"`
-	AdvId          int     `json:"advId"`
 }
 
 type BidResponse struct {
@@ -59,9 +59,32 @@ type WinNotice struct {
 }
 
 type Score struct {
-	advId int
+	AdvId int
 	Score float64
 	Ctr   float64
+}
+
+type CTRs struct {
+	Adv01 float64 `json:"adv01"`
+	Adv02 float64 `json:"adv02"`
+	Adv03 float64 `json:"adv03"`
+	Adv04 float64 `json:"adv04"`
+	Adv05 float64 `json:"adv05"`
+	Adv06 float64 `json:"adv06"`
+	Adv07 float64 `json:"adv07"`
+	Adv08 float64 `json:"adv08"`
+	Adv09 float64 `json:"adv09"`
+	Adv10 float64 `json:"adv10"`
+	Adv11 float64 `json:"adv11"`
+	Adv12 float64 `json:"adv12"`
+	Adv13 float64 `json:"adv13"`
+	Adv14 float64 `json:"adv14"`
+	Adv15 float64 `json:"adv15"`
+	Adv16 float64 `json:"adv16"`
+	Adv17 float64 `json:"adv17"`
+	Adv18 float64 `json:"adv18"`
+	Adv19 float64 `json:"adv19"`
+	Adv20 float64 `json:"adv20"`
 }
 
 var keys []*as.Key
@@ -75,7 +98,7 @@ func main() {
 	// Aerospike config
 	aerospikeClient, err = as.NewClient("35.221.100.18", 3000)
 	panicOnError(err)
-	runtime.GOMAXPROCS(2)
+	runtime.GOMAXPROCS(8)
 
 	defer aerospikeClient.Close()
 
@@ -95,7 +118,6 @@ func main() {
 			log.Print(err)
 			os.Exit(1)
 		}
-		fmt.Printf("%#v\n", *rec)
 	}
 
 	advIds[0] = "adv01"
@@ -195,54 +217,71 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 		Income:         targetUserDemographics.Income,
 		HasChild:       targetUserDemographics.HasChild,
 		IsMarried:      targetUserDemographics.IsMarried,
-		DeviceId:       bidParams.DeviceId,
-		Id:             bidParams.Id,
-		AdvId:          11,
 	}
 
 	jsonBytes, err := json.Marshal(mlParams)
 	panicOnError(err)
-	fmt.Println(mlParams)
-	fmt.Println(jsonBytes)
-	/*
-		httpClient := &http.Client{}
-		// TODO: URL変える
-		req, err := http.NewRequest("POST", "http://35.231.37.137:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
-		if err != nil {
-			log.Print(err)
-			os.Exit(1)
-		}
 
-		req.Header.Set("Content-Type", "application/json")
+	httpClient := &http.Client{}
+	req, err := http.NewRequest("POST", "http://localhost:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
 
-		response, err := httpClient.Do(req)
-		if err != nil {
-			log.Print(err)
-			os.Exit(1)
-		}
-		defer response.Body.Close()
+	req.Header.Set("Content-Type", "application/json")
+	response, err := httpClient.Do(req)
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+	defer response.Body.Close()
 
-		// convert to Integer for CTR
-		byteArray, _ := ioutil.ReadAll(response.Body)
-		fmt.Println("CTR")
-		fmt.Println(string(byteArray))
-		// TODO: ここでbodyを読んで"CTR"を取り出す
-	*/
+	// convert to Integer for CTR
+	byteArray, _ := ioutil.ReadAll(response.Body)
+	fmt.Println("CTR")
+	fmt.Println(string(byteArray))
+	var tmpCtrs CTRs
+	json.Unmarshal(byteArray, &tmpCtrs)
+	fmt.Printf("%+v\n", tmpCtrs)
+
+	// TODO: ここでbodyを読んで"CTR"を取り出す
+	var ctrs [20]float64
+	ctrs[0] = tmpCtrs.Adv01
+	ctrs[1] = tmpCtrs.Adv02
+	ctrs[2] = tmpCtrs.Adv03
+	ctrs[3] = tmpCtrs.Adv04
+	ctrs[4] = tmpCtrs.Adv05
+	ctrs[5] = tmpCtrs.Adv06
+	ctrs[6] = tmpCtrs.Adv07
+	ctrs[7] = tmpCtrs.Adv08
+	ctrs[8] = tmpCtrs.Adv09
+	ctrs[9] = tmpCtrs.Adv10
+	ctrs[10] = tmpCtrs.Adv11
+	ctrs[11] = tmpCtrs.Adv12
+	ctrs[12] = tmpCtrs.Adv12
+	ctrs[13] = tmpCtrs.Adv13
+	ctrs[14] = tmpCtrs.Adv14
+	ctrs[15] = tmpCtrs.Adv15
+	ctrs[16] = tmpCtrs.Adv16
+	ctrs[17] = tmpCtrs.Adv17
+	ctrs[18] = tmpCtrs.Adv18
+	ctrs[19] = tmpCtrs.Adv19
 
 	// get the best advId
-	var ctrs [20]float64
+
 	var budgetsPercentage [20]float64
 	rand.Seed(time.Now().UnixNano())
+	currentBalance := getCurrentBalance()
 	for i := 0; i < 20; i++ {
-		ctrs[i] = rand.Float64()
-		budgetsPercentage[i] = 100000.0 / originalBudgets[i]
+		budgetsPercentage[i] = originalBudgets[i] / currentBalance[i]
 	}
 
 	// 一番いいスコアと会社の情報を得る
 	bestScoreInfo := scoring(ctrs, budgetsPercentage)
 
 	// 広告を出す会社のID
-	advCompanyId := bestScoreInfo.advId
+	advCompanyId := bestScoreInfo.AdvId
 
 	// 会社のCPCとりだし
 	advInfo, err := aerospikeClient.Get(nil, keys[advCompanyId])
@@ -257,7 +296,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	bidResponse := BidResponse{
 		Id:           bidParams.Id,
-		BidPrice:     cpc*ctr*1000.0 + 20000000,
+		BidPrice:     cpc * ctr * 1000.0,
 		AdvertisedId: advIds[advCompanyId],
 		Nurl:         nurl,
 	}
@@ -289,20 +328,31 @@ func decreaseBudget(advId int, price float64) {
 
 // scoring
 func scoring(ctrs [20]float64, balancePercentage [20]float64) Score {
-	scores := make([]Score, 20)
+	var scores []Score
+
 	for i := 0; i < len(ctrs); i++ {
-		//	TODO: implment
-		scores[i].advId = i
-		scores[i].Score = ctrs[i] * balancePercentage[i]
-		scores[i].Ctr = ctrs[i]
+		if balancePercentage[i] >= 0.9 {
+			continue
+		}
+		scores = append(scores, Score{AdvId: i, Score: 0.0, Ctr: ctrs[i]})
 	}
 	sort.Slice(scores, func(i, j int) bool {
-		if scores[i].Score == scores[j].Score {
-			return scores[i].Ctr > scores[i].Ctr
-		} else {
-			return scores[i].Score > scores[j].Score
-		}
+		return scores[i].Ctr > scores[i].Ctr
 	})
 
 	return scores[0]
+}
+
+func getCurrentBalance() [20]float64 {
+	var ret [20]float64
+	for i := 0; i < 20; i++ {
+		rec, err := aerospikeClient.Get(nil, keys[i])
+		ret[i] = rec.Bins["budget"].(float64)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+		fmt.Printf("%#v\n", *rec)
+	}
+	return ret
 }
