@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"io/ioutil"
 	"log"
+	"os"
 )
 
 type UserDemographics struct {
@@ -38,7 +39,7 @@ func storeGob(data interface{}) {
 
 // gobを読み出す
 func loadGob(data interface{}) {
-	raw, err := ioutil.ReadFile("demogra")
+	raw, err := ioutil.ReadFile(os.Getenv("DEMOGRA_PATH"))
 	if err != nil {
 		log.Print(err)
 	}
