@@ -293,35 +293,39 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	// 一番いいスコアと会社の情報を得る
 	bestScoreInfo := scoring(ctrs, budgetsPercentage)
 
-	// 広告を出す会社のID
-	advCompanyId := bestScoreInfo.AdvId
+	if bestScoreInfo.AdvId == -1 {
+		ctx.SetStatusCode(204)
+	}else {
+		// 広告を出す会社のID
+		advCompanyId := bestScoreInfo.AdvId
 
-	// 会社のCPCとりだし
-	advInfo, err := aerospikeClient.Get(nil, keys[advCompanyId])
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
+		// 会社のCPCとりだし
+		advInfo, err := aerospikeClient.Get(nil, keys[advCompanyId])
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+
+		ctr := bestScoreInfo.Ctr
+		cpc := advInfo.Bins["cpc"].(float64)
+		nurl := "http://35.186.252.136/win_notice?advId=" + strconv.Itoa(advCompanyId)
+
+		bidResponse := BidResponse{
+			Id:           bidParams.Id,
+			BidPrice:     cpc * ctr * 1000.0,
+			AdvertisedId: advIds[advCompanyId],
+			Nurl:         nurl,
+		}
+
+		// HTTP response
+		encode, err := json.Marshal(bidResponse)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+
+		ctx.SetBody(encode)
 	}
-
-	ctr := bestScoreInfo.Ctr
-	cpc := advInfo.Bins["cpc"].(float64)
-	nurl := "http://35.186.252.136/win_notice?advId=" + strconv.Itoa(advCompanyId)
-
-	bidResponse := BidResponse{
-		Id:           bidParams.Id,
-		BidPrice:     cpc * ctr * 1000.0,
-		AdvertisedId: advIds[advCompanyId],
-		Nurl:         nurl,
-	}
-
-	// HTTP response
-	encode, err := json.Marshal(bidResponse)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-
-	ctx.SetBody(encode)
 }
 
 func panicOnError(err error) {
@@ -340,15 +344,18 @@ func scoring(ctrs [20]float64, balancePercentage [20]float64) Score {
 	var scores []Score
 
 	for i := 0; i < len(ctrs); i++ {
-		if balancePercentage[i] >= 0.9 {
+		if balancePercentage[i] <= 0.1 {
 			continue
 		}
 		scores = append(scores, Score{AdvId: i, Score: 0.0, Ctr: ctrs[i]})
 	}
 	sort.Slice(scores, func(i, j int) bool {
-		return scores[i].Ctr > scores[i].Ctr
+		return scores[i].Ctr > scores[j].Ctr
 	})
 
+	if len(scores) == 0 {
+		return Score{AdvId: -1, Score: -1, Ctr:204}
+	}
 	return scores[0]
 }
 
