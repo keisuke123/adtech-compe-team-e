@@ -6,15 +6,12 @@ import (
 	as "github.com/aerospike/aerospike-client-go"
 	"github.com/buaazp/fasthttprouter"
 	"github.com/valyala/fasthttp"
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"runtime"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -199,68 +196,90 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	targetUserDemographics := userDemographics[bidParams.DeviceId]
 
 	fmt.Printf("%+v\n", targetUserDemographics)
+	/*
+		var mlParams MlParams
+		mlParams = MlParams{
+			FloorPrice:     bidParams.FloorPrice,
+			MediaId:        bidParams.MediaId,
+			Timestamp:      bidParams.Timestamp,
+			OsType:         bidParams.OsType,
+			BannerSize:     bidParams.BannerSize,
+			BannerPosition: bidParams.BannerPosition,
+			DeviceType:     bidParams.DeviceType,
+			Gender:         targetUserDemographics.Gender,
+			Age:            targetUserDemographics.Age,
+			Income:         targetUserDemographics.Income,
+			HasChild:       targetUserDemographics.HasChild,
+			IsMarried:      targetUserDemographics.IsMarried,
+		}
 
-	var mlParams MlParams
-	mlParams = MlParams{
-		FloorPrice:     bidParams.FloorPrice,
-		MediaId:        bidParams.MediaId,
-		Timestamp:      bidParams.Timestamp,
-		OsType:         bidParams.OsType,
-		BannerSize:     bidParams.BannerSize,
-		BannerPosition: bidParams.BannerPosition,
-		DeviceType:     bidParams.DeviceType,
-		Gender:         targetUserDemographics.Gender,
-		Age:            targetUserDemographics.Age,
-		Income:         targetUserDemographics.Income,
-		HasChild:       targetUserDemographics.HasChild,
-		IsMarried:      targetUserDemographics.IsMarried,
-	}
+		jsonBytes, err := json.Marshal(mlParams)
+		panicOnError(err)
 
-	jsonBytes, err := json.Marshal(mlParams)
-	panicOnError(err)
+		httpClient := &http.Client{}
+		req, err := http.NewRequest("POST", "http://localhost:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
 
-	httpClient := &http.Client{}
-	req, err := http.NewRequest("POST", "http://localhost:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
+		req.Header.Set("Content-Type", "application/json")
+		response, err := httpClient.Do(req)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
+		defer response.Body.Close()
 
-	req.Header.Set("Content-Type", "application/json")
-	response, err := httpClient.Do(req)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-	defer response.Body.Close()
-
-	// convert to Integer for CTR
-	byteArray, _ := ioutil.ReadAll(response.Body)
-	var tmpCtrs CTRs
-	json.Unmarshal(byteArray, &tmpCtrs)
+		// convert to Integer for CTR
+		byteArray, _ := ioutil.ReadAll(response.Body)
+		var tmpCtrs CTRs
+		json.Unmarshal(byteArray, &tmpCtrs)
+	*/
 
 	// TODO: ここでbodyを読んで"CTR"を取り出す
 	var ctrs [20]float64
-	ctrs[0] = tmpCtrs.Adv01
-	ctrs[1] = tmpCtrs.Adv02
-	ctrs[2] = tmpCtrs.Adv03
-	ctrs[3] = tmpCtrs.Adv04
-	ctrs[4] = tmpCtrs.Adv05
-	ctrs[5] = tmpCtrs.Adv06
-	ctrs[6] = tmpCtrs.Adv07
-	ctrs[7] = tmpCtrs.Adv08
-	ctrs[8] = tmpCtrs.Adv09
-	ctrs[9] = tmpCtrs.Adv10
-	ctrs[10] = tmpCtrs.Adv11
-	ctrs[11] = tmpCtrs.Adv12
-	ctrs[12] = tmpCtrs.Adv12
-	ctrs[13] = tmpCtrs.Adv13
-	ctrs[14] = tmpCtrs.Adv14
-	ctrs[15] = tmpCtrs.Adv15
-	ctrs[16] = tmpCtrs.Adv16
-	ctrs[17] = tmpCtrs.Adv17
-	ctrs[18] = tmpCtrs.Adv18
-	ctrs[19] = tmpCtrs.Adv19
+	rand.Seed(time.Now().UnixNano())
+	ctrs[0] = rand.Float64()
+	ctrs[1] = rand.Float64()
+	ctrs[2] = rand.Float64()
+	ctrs[3] = rand.Float64()
+	ctrs[4] = rand.Float64()
+	ctrs[5] = rand.Float64()
+	ctrs[6] = rand.Float64()
+	ctrs[7] = rand.Float64()
+	ctrs[8] = rand.Float64()
+	ctrs[9] = rand.Float64()
+	ctrs[10] = rand.Float64()
+	ctrs[11] = rand.Float64()
+	ctrs[12] = rand.Float64()
+	ctrs[13] = rand.Float64()
+	ctrs[14] = rand.Float64()
+	ctrs[15] = rand.Float64()
+	ctrs[16] = rand.Float64()
+	ctrs[17] = rand.Float64()
+	ctrs[18] = rand.Float64()
+	ctrs[19] = rand.Float64()
+	//ctrs[0] = tmpCtrs.Adv01
+	//ctrs[1] = tmpCtrs.Adv02
+	//ctrs[2] = tmpCtrs.Adv03
+	//ctrs[3] = tmpCtrs.Adv04
+	//ctrs[4] = tmpCtrs.Adv05
+	//ctrs[5] = tmpCtrs.Adv06
+	//ctrs[6] = tmpCtrs.Adv07
+	//ctrs[7] = tmpCtrs.Adv08
+	//ctrs[8] = tmpCtrs.Adv09
+	//ctrs[9] = tmpCtrs.Adv10
+	//ctrs[10] = tmpCtrs.Adv11
+	//ctrs[11] = tmpCtrs.Adv12
+	//ctrs[12] = tmpCtrs.Adv12
+	//ctrs[13] = tmpCtrs.Adv13
+	//ctrs[14] = tmpCtrs.Adv14
+	//ctrs[15] = tmpCtrs.Adv15
+	//ctrs[16] = tmpCtrs.Adv16
+	//ctrs[17] = tmpCtrs.Adv17
+	//ctrs[18] = tmpCtrs.Adv18
+	//ctrs[19] = tmpCtrs.Adv19
 
 	// get the best advId
 
