@@ -8,6 +8,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 )
 
@@ -54,11 +55,18 @@ type WinNotice struct {
 	IsClick string `json:"isClick"`
 }
 
+type Score struct {
+	advId int
+	Score float64
+	Ctr   float64
+}
+
 var keys []*as.Key
 var aerospikeClient *as.Client
 var err error
 var userDemographics map[string]UserDemographics
 var advIds [20]string
+var originalBudgets [20]float64
 
 func main() {
 	// Aerospike config
@@ -78,6 +86,7 @@ func main() {
 
 	for i := 0; i < 20; i++ {
 		rec, err := aerospikeClient.Get(nil, keys[i])
+		originalBudgets[i] = rec.Bins["budget"].(float64)
 		if err != nil {
 			log.Print(err)
 			os.Exit(1)
@@ -121,7 +130,6 @@ func main() {
  */
 func winNoticeHandler(ctx *fasthttp.RequestCtx) {
 	var winNoticeParams WinNotice
-	fmt.Println(string(ctx.PostBody()))
 	err := json.Unmarshal(ctx.PostBody(), &winNoticeParams)
 	if err != nil {
 		ctx.Write([]byte("json decode error" + err.Error() + "\n"))
@@ -216,8 +224,20 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 		fmt.Println(string(byteArray))
 		// TODO: ここでbodyを読んで"CTR"を取り出す
 	*/
-	// scoring(ctr, current balance)
-	advCompanyId := 0
+
+	// get the best advId
+	var ctrs [20]float64
+	var budgetsPercentage [20]float64
+	for i := 0; i < 20; i++ {
+		ctrs[i] = 0.05
+		budgetsPercentage[i] = 100000.0 / originalBudgets[i]
+	}
+
+	// 一番いいスコアと会社の情報を得る
+	bestScoreInfo := scoring(ctrs, budgetsPercentage)
+
+	// 広告を出す会社のID
+	advCompanyId := bestScoreInfo.advId
 
 	// 会社のCPCとりだし
 	advInfo, err := aerospikeClient.Get(nil, keys[advCompanyId])
@@ -226,9 +246,9 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 		os.Exit(1)
 	}
 
-	ctr := 0.05
+	ctr := bestScoreInfo.Ctr
 	cpc := advInfo.Bins["cpc"].(float64)
-	nurl := "http://localhost:8080/win_notice?advId=" + strconv.Itoa(advCompanyId)
+	nurl := "http://35.186.252.136:8080/win_notice?advId=" + strconv.Itoa(advCompanyId)
 
 	bidResponse := BidResponse{
 		Id:           bidParams.Id,
@@ -260,4 +280,24 @@ func panicOnError(err error) {
 // decrease company's budget
 func decreaseBudget(advId int, price float64) {
 	aerospikeClient.Operate(as.NewWritePolicy(0, 0), keys[advId], as.AddOp(as.NewBin("budget", -price)), as.GetOp())
+}
+
+// scoring
+func scoring(ctrs [20]float64, balancePercentage [20]float64) Score {
+	scores := make([]Score, 20)
+	for i := 0; i < len(ctrs); i++ {
+		//	TODO: implment
+		scores[i].advId = i
+		scores[i].Score = ctrs[i] * balancePercentage[i]
+		scores[i].Ctr = ctrs[i]
+	}
+	sort.Slice(scores, func(i, j int) bool {
+		if scores[i].Score == scores[j].Score {
+			return scores[i].Ctr > scores[i].Ctr
+		} else {
+			return scores[i].Score > scores[j].Score
+		}
+	})
+
+	return scores[0]
 }
