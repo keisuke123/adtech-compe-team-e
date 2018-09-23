@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	"runtime"
 )
 
 type BidParam struct {
@@ -74,6 +75,7 @@ func main() {
 	// Aerospike config
 	aerospikeClient, err = as.NewClient("35.221.100.18", 3000)
 	panicOnError(err)
+	runtime.GOMAXPROCS(2)
 
 	defer aerospikeClient.Close()
 
