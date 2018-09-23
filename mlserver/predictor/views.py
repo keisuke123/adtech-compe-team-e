@@ -5,8 +5,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+import numpy as np
+from predictor.models import CTRPredictor, Preprocessor, ResultsWrapper
+import threading
 
-from predictor.models import CTRPredictor
+ad_ids = ["adv01", "adv02", "adv03", "adv04", "adv05", "adv06", "adv07",
+          "adv08", "adv09", "adv10", "adv11", "adv12", "adv13", "adv14",
+          "adv15", "adv16", "adv17", "adv18", "adv19", "adv20"
+          ]
 
 
 # Create your views here.
@@ -75,56 +81,64 @@ def ctr(request):
         else:
             return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
+        processor = Preprocessor.get_solo()
+        ctr_predictor = CTRPredictor.get_solo()
+
         train_dict = {
-            'floorPrice': floor_price, #done
-            'mediaId': media_id,
-            'timeStamp': timestamp,
-            'osType': os_type, #done
-            'bannerSize': banner_size, #done
-            'bannerPosition': banner_position, #done
-            'gender': gender, #done
-            'age': age, #done
-            'income': income, #done
-            'hasChild': has_child, #done
-            'isMarried': is_married, #done
-            'advId': adv_id
+            'floorPrice': floor_price,  # done
+            'mediaId': media_id,  # done
+            'timestamp': timestamp,  # done
+            'osType': os_type,  # done
+            'bannerSize': banner_size,  # done
+            'bannerPosition': banner_position,  # done
+            'gender': gender,  # done
+            'age': age,  # done
+            'income': income,  # done
+            'hasChild': has_child,  # done
+            'isMarried': is_married,  # done
         }
 
-        df = pd.DataFrame(columns=['floorPrice', 'isClick', 'isHoliday',
-                                   'bannerPosition_below', 'bannerPosition_header',
-                                   'bannerPosition_footer', 'bannerPosition_Sidebar',
-                                   'bannerPosition_Full', 'os_type_iOS', 'h_1', 'h_10', 'h_11', 'h_12',
-                                   'h_13', 'h_14', 'h_15', 'h_16', 'h_17', 'h_18', 'h_19', 'h_2', 'h_20',
-                                   'h_21', 'h_22', 'h_23', 'h_3', 'h_4', 'h_5', 'h_6', 'h_7', 'h_8', 'h_9',
-                                   'advId_10', 'advId_11', 'advId_12', 'advId_13', 'advId_14', 'advId_15',
-                                   'advId_16', 'advId_17', 'advId_18', 'advId_19', 'advId_2', 'advId_20',
-                                   'advId_3', 'advId_4', 'advId_5', 'advId_6', 'advId_7', 'advId_8',
-                                   'advId_9', 'mediaId_counts', 'Click_counts_mediaId', 'bannerSize_2',
-                                   'bannerSize_3', 'bannerSize_4', 'age', 'income', 'female', 'male',
-                                   'not_married', 'married', 'no', 'yes'])
+        response_body = {}
+        for i in range(20):
+            x = processor.process(train_dict, ad_ids[i])
+            response_body[ad_ids[i]] = ctr_predictor.model.predict_proba(x).T[1]
 
-        #fit new data into the dataframe
+        # threads = []
+        # for i in range(0, 20, 2):
+        #     x1 = processor.process(train_dict, ad_ids[i])
+        #     x2 = processor.process(train_dict, ad_ids[i+1])
+        #     threads.append(
+        #         threading.Thread(target=ctr_predictor.predict, kwargs={'X_new': x1}))
+        #     threads.append(
+        #         threading.Thread(target=ctr_predictor.predict, kwargs={'X_new': x2}))
+        #
+        # for t in range(0, 20):
+        #     threads[t].start()
+        #
+        # for t in range(0, 20):
+        #     threads[t].join()
 
+        # result_wrappers = []
+        # for ad_id in ad_ids:
+        #     result_wrappers.append(ResultsWrapper(shared_input_dict, ad_id))
 
+        # for result_wrapper in result_wrappers:
+        #     result_wrapper.ctr = ctr_predictor.predict(result_wrapper.X_new)
+        #     response_body[result_wrapper.ad_id] = result_wrapper.ctr
+        #
+        # df = pd.DataFrame(columns=['floorPrice', 'isClick', 'isHoliday',
+        #                            'bannerPosition_below', 'bannerPosition_header',
+        #                            'bannerPosition_footer', 'bannerPosition_Sidebar',
+        #                            'bannerPosition_Full', 'os_type_iOS', 'h_1', 'h_10', 'h_11', 'h_12',
+        #                            'h_13', 'h_14', 'h_15', 'h_16', 'h_17', 'h_18', 'h_19', 'h_2', 'h_20',
+        #                            'h_21', 'h_22', 'h_23', 'h_3', 'h_4', 'h_5', 'h_6', 'h_7', 'h_8', 'h_9',
+        #                            'advId_10', 'advId_11', 'advId_12', 'advId_13', 'advId_14', 'advId_15',
+        #                            'advId_16', 'advId_17', 'advId_18', 'advId_19', 'advId_2', 'advId_20',
+        #                            'advId_3', 'advId_4', 'advId_5', 'advId_6', 'advId_7', 'advId_8',
+        #                            'advId_9', 'mediaId_counts', 'Click_counts_mediaId', 'bannerSize_2',
+        #                            'bannerSize_3', 'bannerSize_4', 'age', 'income', 'female', 'male',
+        #                            'not_married', 'married', 'no', 'yes'])
 
-        #crea
-
-        df_train = pd.DataFrame(train_dict, index=[0])
-
-        list_target = list(df_train.drop(["bannerPosition", "bannerSize", "deviceType",
-                                          "floorPrice", "mediaId", "timestamp", "advId"], axis=1).columns)
-        for target in list_target:
-            le = LabelEncoder()
-            le.fit(df_train[target])
-            df_train[target] = le.transform(df_train[target])
-        X_train = df_train.drop(["id"], axis=1).values
-        ctr_predictor = CTRPredictor.get_solo()
-        # ctr = CTRPredictor.model.predict_proba(X_train[0].reshape(1,-1))
-
-        response_body = [
-            {
-                'ctr': 0.75
-            }
-        ]
+        # fit new data into the dataframe
 
         return Response(response_body, status=status.HTTP_200_OK)

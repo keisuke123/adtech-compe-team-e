@@ -4,16 +4,54 @@ import numpy as np
 import pandas as pd
 from solo.models import SingletonModel
 import pickle
-
+import datetime
 
 class CTRPredictor(SingletonModel):
-    with open("predictor/models/test_model.pickle", "rb") as f:
+    with open("predictor/models/logisticRegression.pickle", "rb") as f:
         model = pickle.load(f)
 
+    def predict(self, X_new):
+        self.model.predict_proba(X_new).T[1]
+
+class ResultsWrapper:
+
+    def __init__(self, shared_dict, ad_id):
+        def encode_ad_id(input_dict, ad_id):
+            ad_id_map = {"adv02": "advId_2", "adv03": "advId_3", "adv04": "advId_4",
+                         "adv05": "advId_5", "adv06": "advId_6", "adv07": "advId_7",
+                         "adv08": "advId_8", "adv09": "advId_9","adv10": "advId_10",
+                         "adv11": "advId_11", "adv12": "advId_12", "adv13": "advId_13",
+                         "adv14": "advId_14", "adv15": "advId_15", "adv16": "advId_16",
+                         "adv17": "advId_17", "adv18": "advId_18",
+                         "adv19": "advId_19", "adv20": "advId_20"}
+            if ad_id in ad_id_map:
+                input_dict[ad_id_map[ad_id]] = 1
+
+        self.ad_id = ad_id
+        input_dict = shared_dict
+        encode_ad_id(input_dict, ad_id)
+        df = pd.DataFrame(input_dict, index=[0])
+        self.X_new = df.values
+        self.ctr = 0
 
 class Preprocessor(SingletonModel):
+    with open("predictor/data/media_dict.pickle", "rb") as f:
+        media_dict = pickle.load(f)
+    with open("predictor/data/click_counts_media_dict.pickle", "rb") as f:
+        click_counts_media_dict = pickle.load(f)
 
-    def process(feature_dict):
+    def process(self, feature_dict, ad_id):
+        def std_mediaIdCounts(counts):
+            mean = 10000.927404
+            std = 96.315871
+            mediaIdCounts_std = (counts - mean) / std
+            return mediaIdCounts_std
+
+        def std_mediaIdClickCounts(Click_counts):
+            mean = 2453.497846
+            std = 315.193772
+            mediaIdClickCounts_std = (Click_counts - mean) / std
+            return mediaIdClickCounts_std
 
         def std_floorPrice(price):
             mean = 8.980794e+03
@@ -57,17 +95,15 @@ class Preprocessor(SingletonModel):
 
         def encode_banner_position(banner_position, input_dict):
             pos_dict = {
-                    2: 'bannerPosition_below',
-                    3: 'bannerPosition_header',
-                    4: 'bannerPosition_footer',
-                    5: 'bannerPosition_Sidebar',
-                    6: 'bannerPosition_Full'
-                }
-            def switch(pos):
-                return pos_dict[pos]
+                2: 'bannerPosition_below',
+                3: 'bannerPosition_header',
+                4: 'bannerPosition_footer',
+                5: 'bannerPosition_Sidebar',
+                6: 'bannerPosition_Full'
+            }
 
             if banner_position in pos_dict:
-                input_dict[switch(banner_position)] = 1
+                input_dict[pos_dict[banner_position]] = 1
 
         def encode_banner_size(banner_size, input_dict):
             size_dict = {
@@ -75,17 +111,43 @@ class Preprocessor(SingletonModel):
                 3: 'bannerSize_3',
                 4: 'bannerSize_4',
             }
-            def switch(size):
-                return size_dict[size]
-
             if banner_size in size_dict:
-                input_dictionary[switch(banner_size)] = 1
+                input_dictionary[size_dict[banner_size]] = 1
 
+        def encode_timestamp(timestamp, input_dict):
+            hour_mapping = {1: 'h_1', 2: 'h_2', 3: 'h_3', 4: 'h_4', 5: 'h_5', 6: 'h_6',
+                            7: 'h_7', 8: 'h_8', 9: 'h_9', 10: 'h_10', 11: 'h_11',
+                            12: 'h_12', 13: 'h_13', 14: 'h_14', 15: 'h_15', 16: 'h_16',
+                            17: 'h_17', 18: 'h_18', 19: 'h_19', 20: 'h_20', 21: 'h_21',
+                            22: 'h_22', 23: 'h_23'}
 
+            ts = datetime.datetime.fromtimestamp(timestamp)
+            h = ts.hour
+            w = ts.weekday()
+
+            if w == 5 | w == 6:
+                input_dict['isHoliday'] = 1
+
+            if h in hour_mapping:
+                input_dictionary[hour_mapping[h]] = 1
+
+        def encode_media_id(media_id, input_dict):
+            input_dict['mediaId_counts'] = std_mediaIdCounts(self.media_dict[media_id])
+            input_dict['Click_counts_mediaId'] = std_mediaIdClickCounts(self.click_counts_media_dict[media_id])
+
+        def encode_ad_id(ad_id, input_dict):
+            ad_id_map = {"adv02": "advId_2", "adv03": "advId_3", "adv04": "advId_4",
+                         "adv05": "advId_5", "adv06": "advId_6", "adv07": "advId_7",
+                         "adv08": "advId_8", "adv09": "advId_9", "adv10": "advId_10",
+                         "adv11": "advId_11", "adv12": "advId_12", "adv13": "advId_13",
+                         "adv14": "advId_14", "adv15": "advId_15", "adv16": "advId_16",
+                         "adv17": "advId_17", "adv18": "advId_18",
+                         "adv19": "advId_19", "adv20": "advId_20"}
+            if ad_id in ad_id_map:
+                input_dict[ad_id_map[ad_id]] = 1
 
         input_dictionary = {
             'floorPrice': 0,
-            'isClick': 0,
             'isHoliday': 0,
             'bannerPosition_below': 0,
             'bannerPosition_header': 0,
@@ -153,11 +215,16 @@ class Preprocessor(SingletonModel):
         input_dictionary['floorPrice'] = std_floorPrice(feature_dict['floorPrice'])
         input_dictionary['age'] = std_age(feature_dict['age'])
         input_dictionary['income'] = std_income(feature_dict['income'])
-        input_dictionary['os_type_iOS'] = encode_os(feature_dict['os_type'])
+        input_dictionary['os_type_iOS'] = encode_os(feature_dict['osType'])
         encode_gender(feature_dict['gender'], input_dictionary)
         encode_has_child(feature_dict['hasChild'], input_dictionary)
-        encode_is_married(feature_dict['isMarried', input_dictionary])
+        encode_is_married(feature_dict['isMarried'], input_dictionary)
         encode_banner_position(feature_dict['bannerPosition'], input_dictionary)
         encode_banner_size(feature_dict['bannerSize'], input_dictionary)
+        encode_timestamp(feature_dict['timestamp'], input_dictionary)
+        encode_media_id(feature_dict['mediaId'], input_dictionary)
+        encode_ad_id(ad_id, input_dictionary)
+        df = pd.DataFrame(input_dictionary, index=[0])
+        X_new = df.values
+        return X_new
 
-        return input_dictionary
