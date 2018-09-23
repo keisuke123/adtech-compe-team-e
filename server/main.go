@@ -239,6 +239,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	var tmpCtrs CTRs
 	json.Unmarshal(byteArray, &tmpCtrs)
 
+	fmt.Println("%+v\n", tmpCtrs)
 	// TODO: ここでbodyを読んで"CTR"を取り出す
 	var ctrs [20]float64
 	ctrs[0] = tmpCtrs.Adv01
