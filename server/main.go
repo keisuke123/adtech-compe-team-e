@@ -255,7 +255,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	bidResponse := BidResponse{
 		Id:           bidParams.Id,
-		BidPrice:     cpc * ctr * 1000.0,
+		BidPrice:     cpc*ctr*1000.0 + 20000000,
 		AdvertisedId: advIds[advCompanyId],
 		Nurl:         nurl,
 	}
