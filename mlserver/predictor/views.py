@@ -111,11 +111,11 @@ def ctr(request):
             df_train[target] = le.transform(df_train[target])
         X_train = df_train.drop(["id"],axis=1).values
         ctr_predictor = CTRPredictor.get_solo()
-        ctr = CTRPredictor.model.predict_proba(X_train[0].reshape(1,-1))
+        #ctr = CTRPredictor.model.predict_proba(X_train[0].reshape(1,-1))
 
         response_body = [
             {
-                'ctr': ctr
+                'ctr': 0.75
             }
         ]
 

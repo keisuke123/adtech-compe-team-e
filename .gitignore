@@ -2,3 +2,8 @@
 *.json
 *.pickle
 .idea/*
+.pyc
+*.log
+*.logs
+ml/.idea/*
+mlserver/.idea/*
