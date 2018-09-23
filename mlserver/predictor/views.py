@@ -101,7 +101,7 @@ def ctr(request):
         response_body = {}
         for i in range(20):
             x = processor.process(train_dict, ad_ids[i])
-            response_body[ad_ids[i]] = ctr_predictor.model.predict_proba(x).T[1]
+            response_body[ad_ids[i]] = ctr_predictor.model.predict_proba(x).T[1][0]
 
         # threads = []
         # for i in range(0, 20, 2):
