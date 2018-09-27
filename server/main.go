@@ -22,7 +22,7 @@ type BidParam struct {
 	Id             string `json:"id"`
 	FloorPrice     int    `json:"floorPrice"`
 	DeviceId       string `json:"deviceId"`
-	MediaId        string `json:"mediaId"`
+	MediaId        int    `json:"mediaId"`
 	Timestamp      int64  `json:"timeStamp"`
 	OsType         string `json:"osType"`
 	BannerSize     int    `json:"bannerSize"`
@@ -32,7 +32,7 @@ type BidParam struct {
 
 type MlParams struct {
 	FloorPrice     int     `json:"floorPrice"`
-	MediaId        string  `json:"mediaId"`
+	MediaId        int     `json:"mediaId"`
 	Timestamp      int64   `json:"timestamp"`
 	OsType         string  `json:"osType"`
 	BannerSize     int     `json:"bannerSize"`
@@ -220,7 +220,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 	panicOnError(err)
 
 	httpClient := &http.Client{}
-	req, err := http.NewRequest("POST", "http://35.200.14.212:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
+	req, err := http.NewRequest("POST", "http://10.146.0.13:3000/predict/ctr", strings.NewReader(string(jsonBytes)))
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
@@ -236,6 +236,7 @@ func bidRequestHandler(ctx *fasthttp.RequestCtx) {
 
 	// convert to Integer for CTR
 	byteArray, _ := ioutil.ReadAll(response.Body)
+	fmt.Println(string(byteArray))
 	var tmpCtrs CTRs
 	json.Unmarshal(byteArray, &tmpCtrs)
 
